@@ -16,6 +16,9 @@ In addition to visual presentation of the problem , also the nearest distance zo
 =================
 The excel fiel 86 stations 200 zones, contains 86 stations as the name suggests with the nearest 200 zones within a 100 miles range. 
 
+KMZ FILES: Google Earth
+=======================
+These files has the layers for all the maps genereted so far. These can be used on google earth pro as well as ArcMaps.
 
 REFERENCES
 ==========

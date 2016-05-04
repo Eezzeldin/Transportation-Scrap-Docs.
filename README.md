@@ -15,3 +15,8 @@ In addition to visual presentation of the problem , also the nearest distance zo
 1 Main Excel File
 =================
 The excel fiel 86 stations 200 zones, contains 86 stations as the name suggests with the nearest 200 zones within a 100 miles range. 
+
+
+REFERENCES
+==========
+All the references were included in 1 file called coordinate system .txt

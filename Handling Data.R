@@ -8,6 +8,15 @@ ALLZONES <<- read.csv("long_0514cusWDDP.csv")
 METRO <<- read.csv("METRODATA.csv")
 NEARZONES <<- read.csv ("Nearest 200 Zones_100 _86 Stations.csv")
 }
+writemodifieddata = function (){
+write.csv(ALLZONES,"ALLZONES.csv")
+write.csv(METRO,"METRO.csv")
+write.csv(NEARZONES,"NEARZONES.csv")}
+getmodifiedata = function (){
+  ALLZONES = read.csv("ALLZONES.csv")
+  METRO = read.csv("METRO.csv")
+  NEARZONES = read.csv( "NEARZONES,csv")
+}
 modifydata = function (){
   ##---ALLZONES Units
   Keep_residentsonly_ALLZONES = function ()   {
@@ -24,6 +33,24 @@ modifydata = function (){
     ALLZONES$Time_of_Day <<- as.numeric(factor(ALLZONES$Time_of_Day))
     ALLZONES$Purpose     <<- as.numeric(factor(ALLZONES$Purpose)) 
   }
+  removenonactivezones_ALLZONES = function (){
+    Condition1 = ALLZONES$Origin_Zone %in% NEARZONES$ZONE.ID.TAZ 
+    Condition2 = ALLZONES$Destination_Zone %in% NEARZONES$ZONE.ID.TAZ
+    Condition3 = Condition1 & Condition2
+    ALLZONES <<- ALLZONES [Condition3,]
+  }
+  makeallzonesnamessameasmetro_ALLZONES = function (StationName) {
+     #condition = grepl( METRO [StationNumber, "Ent.Station"],NEARZONES$MetroStnFullPt.NAME)
+     condition = grepl( substr(StationName, start=2, stop=7) ,NEARZONES$MetroStnFullPt.NAME)
+     TargetedRecords =  NEARZONES [condition,]
+     TargetedRecords$MetroStnFullPt.NAME =  sapply (TargetedRecords$MetroStnFullPt.NAME , as.character)
+     #TargetedRecords$MetroStnFullPt.NAME  = paste(  METRO [StationNumber, "Ent.Station"])
+     #TargetedRecords$MetroStnFullPt.NAME  = paste(StationName)
+     NEARZONES [which (grepl( substr(StationName, start=2, stop=7)  ,NEARZONES$MetroStnFullPt.NAME),arr.ind = T),3]  <<- paste(StationName)
+     print (NEARZONES [which (grepl( substr(StationName, start=2, stop=7)  ,NEARZONES$MetroStnFullPt.NAME),arr.ind = T),3])
+     return (TargetedRecords$MetroStnFullPt.NAME)
+  }
+  
   
   ##---METRO Units
   remove_RedundantVariables_METRO = function() {
@@ -63,7 +90,7 @@ modifydata = function (){
   Keep_residentsonly_ALLZONES ()
   remove_RedundantVariables_ALLZONES()
   make_categorial_variables_asnumeric_ALLZONES()
-  removenonactivezones_ALLZONES()
+  
   
   remove_RedundantVariables_METRO()
   make_categorial_variables_asnumeric_METRO()
@@ -72,11 +99,20 @@ modifydata = function (){
   make_categorial_variables_asnumeric_NEARZONES ()
   calculate_distanceinmiles_NEARZONES()
   
+  removenonactivezones_ALLZONES()
+  #makeallzonesnamessameasmetro_ALLZONES()
+  # vector1 = METRO$Ent.Station
+  # vector1 = sapply (vector1,as.character)
+  # vector1 = unique(vector1)
+  # vector1  = vector1 [-c(56,52,75)]
+  # lapply (vector1 , function (x)makeallzonesnamessameasmetro_ALLZONES(x) )
+  # 
 }
 construct_Predictors = function (){
   #First 2 columns are origin and destination stations
   Predictors <<- data.frame (METRO$Ent.Station,METRO$Ext.Station)
-  ##--CONSTRUCTING UNITS
+  
+  ##-------CONSTRUCTING UNITS
   add200predictors_closestzones_everystation = function (){
     for (i in 1:200)
       {
@@ -95,24 +131,28 @@ construct_Predictors = function (){
     return (closest200Destinationstations)
   }
   
-  get_count = function (){
-    countvector <- c()
-    origin = c(O_D[,1])
-    Destination = c(O_D[,2])
-    for (i in c(1:200)){
-      conditoin1 = ALLZONES$Count [ALLZONES$Origin_Zone == O_D$Origin[i] ]
-      conditoin2 = ALLZONES$Destination_Zone == O_D$Destination [i]                            
-      countvector [i] = ALLZONES$Count [ conditoin1 * conditoin2 ]
-      print (paste ("Count",ALLZONES$Count [ conditoin1 * conditoin2 ]))
-      print (i)
-    }
-    return (countvector)
+  merging_METROwithNEARZONES = function () {
+    
   }
-  ##--EXECUTION
+  
+  
+  get_count = function (x){
+    origin = O_D[x,1]
+    Destination = O_D [x,2]
+    conditoin1 = ALLZONES$Origin_Zone == O_D$Origin[x] 
+    conditoin2 = ALLZONES$Destination_Zone == O_D$Destination [x]
+    condition3 = conditoin1 & conditoin2
+    zonescounts = c()
+    zonecounts = ALLZONES$Count [condition3]
+    output = cbind (origin,Destination,zonecounts)
+    return (output)
+  }
+  ##--------EXECUTION
   add200predictors_closestzones_everystation()
   O_D <<- data.frame (get_closest200Zones_1st_record_OriginStation(),get_closest200Zones_1stDestinationStation()) #1st_origin_Destination_dataframe
   colnames (O_D) <<- c ("Origin","Destination")
-  get_count()
+ # for (i in c(1:200)) {print (get_count(i)); print (i)}
+    
 }
 
 
@@ -121,6 +161,8 @@ construct_Predictors = function (){
 ####EXECUTION
 getdata()
 modifydata ()
+writemodifieddata()
+getmodifiedata ()
 construct_Predictors ()
 
 
@@ -156,3 +198,22 @@ DistanceMiles
 [1] TRUE
 
 grepl( METRO [1, "Ent.Station"],NEARZONES$MetroStnFullPt.NAME)
+
+
+substr("Archives-Navy Memorial", start=1, stop=10) 
+
+output = data.frame()
+output = data.frame (lapply (myvector , function (x)makeallzonesnamessameasmetro_ALLZONES(x) ))
+lapply (myvector , function (x)makeallzonesnamessameasmetro_ALLZONES(x) )
+lapply (vector1 , function (x)makeallzonesnamessameasmetro_ALLZONES(x) )
+
+        which (grepl( "Archives-N"  ,NEARZONES$MetroStnFullPt.NAME),arr.ind = T)
+        
+        substr("Arlington Cemetery" , start=1, stop=10)     
+        
+        myvector = myvector[-56] $"New York Ave"      
+        myvector = myvector[-75] #"U Street-Cardozo" 
+        myvector = myvector[-52]#"Mt. Vernon Square-UDC" 
+        vector1  = vector1 [-c(56,52,75)]
+table (ALLZONES$MetroStnFullPt.NAME)
+

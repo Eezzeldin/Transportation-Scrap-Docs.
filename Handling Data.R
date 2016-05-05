@@ -13,9 +13,9 @@ write.csv(ALLZONES,"ALLZONES.csv")
 write.csv(METRO,"METRO.csv")
 write.csv(NEARZONES,"NEARZONES.csv")}
 getmodifiedata = function (){
-  ALLZONES = read.csv("ALLZONES.csv")
-  METRO = read.csv("METRO.csv")
-  NEARZONES = read.csv( "NEARZONES,csv")
+  ALLZONES <<- read.csv("ALLZONES.csv")
+  METRO <<- read.csv("METRO.csv")
+  NEARZONES <<- read.csv( "NEARZONES.csv")
 }
 modifydata = function (){
   ##---ALLZONES Units
@@ -51,7 +51,6 @@ modifydata = function (){
      return (TargetedRecords$MetroStnFullPt.NAME)
   }
   
-  
   ##---METRO Units
   remove_RedundantVariables_METRO = function() {
     #Remove the year and month because I know the analysis runs in may and in 2014.
@@ -62,6 +61,7 @@ modifydata = function (){
     METRO$Ent.Date.Service.Type <<- as.numeric(factor(METRO$Ent.Date.Service.Type))
     METRO$Ent.Time.Period <<- as.numeric(factor(METRO$Ent.Time.Period))
   }
+ 
   
   ##---NEARZONES
   remove_RedundantVariables_NEARZONES = function (){
@@ -107,6 +107,31 @@ modifydata = function (){
   # vector1  = vector1 [-c(56,52,75)]
   # lapply (vector1 , function (x)makeallzonesnamessameasmetro_ALLZONES(x) )
   # 
+  ALLZONES <<- removecategorial_ALLZONES  (2,1) 
+  METRO    <<- removecategorial_METRO (1,1)
+}
+modifydata_1 = function (){
+  ##---BUILDING UNITS
+  #ALLZONES
+  removecategorial_ALLZONES = function (Purpose,Timeofday) {
+    indexes = c()
+    indexes = which (ALLZONES$Purpose==Purpose & ALLZONES$Time_of_Day ==Timeofday,arr.ind =TRUE)
+    ALLZONES <-ALLZONES[indexes  ,]
+    return (ALLZONES)
+  }
+  
+  #METRO
+  removecategorial_METRO = function (DATE,TimePeriod) {
+    METRO <- METRO[ which (METRO$Ent.Date.Service.Type==DATE & METRO$Ent.Time.Period ==TimePeriod ,arr.ind =TRUE),]
+    return (METRO)
+  }
+  
+  #NEARZONES
+  
+  
+  ##---EXECUTION
+  ALLZONES <<- removecategorial_ALLZONES(1,1)#(Purpose: 1:NHB , 2:HBW ,3:HBO,TimeofDay:1:H16:H20 2:H6:H10)
+  METRO    <<-  removecategorial_METRO(1,1) #(Week:1:Weekday , 2:Sunday , 3:Saterday  , Time: 1:AMPeak , 2:Evening , 3:Midday , 4: PM Peak)
 }
 construct_Predictors = function (){
   #First 2 columns are origin and destination stations
@@ -130,12 +155,7 @@ construct_Predictors = function (){
     closest200Destinationstations = NEARZONES [ grepl( METRO [2, "Ext.Station"],NEARZONES$MetroStnFullPt.NAME), 2]
     return (closest200Destinationstations)
   }
-  
-  merging_METROwithNEARZONES = function () {
-    
-  }
-  
-  
+
   get_count = function (x){
     origin = O_D[x,1]
     Destination = O_D [x,2]
@@ -144,9 +164,13 @@ construct_Predictors = function (){
     condition3 = conditoin1 & conditoin2
     zonescounts = c()
     zonecounts = ALLZONES$Count [condition3]
-    output = cbind (origin,Destination,zonecounts)
+    Purpose = ALLZONES$Purpose
+    Time = ALLZONES$Time_of_Day
+    output = cbind (origin,Destination,zonecounts,Purpose,Time)
     return (output)
   }
+  
+  
   ##--------EXECUTION
   add200predictors_closestzones_everystation()
   O_D <<- data.frame (get_closest200Zones_1st_record_OriginStation(),get_closest200Zones_1stDestinationStation()) #1st_origin_Destination_dataframe
@@ -159,10 +183,14 @@ construct_Predictors = function (){
 
 
 ####EXECUTION
-getdata()
-modifydata ()
-writemodifieddata()
+#getdata()
+#modifydata ()
+#writemodifieddata()
+#
+remove (getdata,writemodifieddata, modifydata)
+#
 getmodifiedata ()
+modifydata_1()
 construct_Predictors ()
 
 
@@ -217,3 +245,382 @@ lapply (vector1 , function (x)makeallzonesnamessameasmetro_ALLZONES(x) )
         vector1  = vector1 [-c(56,52,75)]
 table (ALLZONES$MetroStnFullPt.NAME)
 
+> sapply (c(1:200),function(x) get_count(x))
+{
+[[1]]
+origin Destination
+[1,]    755        1908
+
+[[2]]
+origin Destination
+[1,]    748        1912
+
+[[3]]
+origin Destination
+[1,]    746        1911
+
+[[4]]
+origin Destination zonecounts
+[1,]    713        1909       1.62
+[2,]    713        1909       1.08
+
+[[5]]
+origin Destination
+[1,]    718        1913
+
+[[6]]
+origin Destination zonecounts
+[1,]    751        1905       2.80
+[2,]    751        1905       0.77
+
+[[7]]
+origin Destination zonecounts
+[1,]    747        1848       3.64
+
+[[8]]
+origin Destination zonecounts
+[1,]    749        1930       1.69
+
+[[9]]
+origin Destination zonecounts
+[1,]    719        1914       2.57
+
+[[10]]
+origin Destination
+[1,]    803        1907
+
+[[11]]
+origin Destination zonecounts
+[1,]    404        1915       2.12
+
+[[12]]
+origin Destination zonecounts
+[1,]    750        1910       0.89
+[2,]    750        1910       1.30
+
+[[13]]
+origin Destination zonecounts
+[1,]    714        1906       0.47
+
+[[14]]
+origin Destination
+[1,]    715        1847
+
+[[15]]
+origin Destination zonecounts
+[1,]    661         469       1.68
+
+[[16]]
+origin Destination zonecounts
+[1,]   1885        1964       2.19
+
+[[17]]
+origin Destination zonecounts
+[1,]    753        1904       0.76
+
+[[18]]
+origin Destination zonecounts
+[1,]    763         473       0.82
+
+[[19]]
+origin Destination zonecounts
+[1,]    866         467       1.40
+[2,]    866         467       6.42
+
+[[20]]
+origin Destination
+[1,]    401        1953
+
+[[21]]
+origin Destination
+[1,]    397        1931
+
+[[22]]
+origin Destination zonecounts
+[1,]   1901         472       0.76
+[2,]   1901         472       1.62
+[3,]   1901         472       1.09
+
+[[23]]
+origin Destination zonecounts
+[1,]    548        1939      30.76
+[2,]    548        1939       1.34
+
+[[24]]
+origin Destination
+[1,]   1884         474
+
+[[25]]
+origin Destination
+[1,]   1900        1929
+
+[[26]]
+origin Destination zonecounts
+[1,]    422        1902       1.33
+
+[[27]]
+origin Destination
+[1,]    553        1960
+
+[[28]]
+origin Destination zonecounts
+[1,]    423        1957       3.28
+
+[[29]]
+origin Destination
+[1,]    802        1954
+
+[[30]]
+origin Destination
+[1,]   1886        1926
+
+[[31]]
+origin Destination zonecounts
+[1,]    754         470       2.38
+
+[[32]]
+origin Destination
+[1,]    549        1927
+
+[[33]]
+origin Destination
+[1,]    628        1923
+
+[[34]]
+origin Destination
+[1,]   1894         471
+
+[[35]]
+origin Destination zonecounts
+[1,]    406        1844      67.40
+[2,]    406        1844       0.73
+[3,]    406        1844       5.51
+[4,]    406        1844       0.33
+[5,]    406        1844       6.37
+
+[[36]]
+origin Destination
+[1,]    552        1965
+
+[[37]]
+origin Destination zonecounts
+[1,]    396        1928       1.20
+[2,]    396        1928       0.74
+
+[[38]]
+origin Destination zonecounts
+[1,]    828        1846       2.44
+[2,]    828        1846       1.07
+
+[[39]]
+origin Destination zonecounts
+[1,]   1883        1887       1.34
+[2,]   1883        1887       6.84
+
+[[40]]
+origin Destination zonecounts
+[1,]    629         468       6.17
+[2,]    629         468       8.26
+[3,]    629         468       1.85
+
+[[41]]
+origin Destination
+[1,]    421        1952
+
+[[42]]
+origin Destination zonecounts
+[1,]   1899        1918        0.7
+
+[[43]]
+origin Destination zonecounts
+[1,]    830        1903       0.73
+[2,]    830        1903       1.33
+[3,]    830        1903       2.52
+[4,]    830        1903       1.26
+[5,]    830        1903       2.29
+
+[[44]]
+origin Destination
+[1,]    764        1963
+
+[[45]]
+origin Destination zonecounts
+[1,]    706        1919       2.43
+
+[[46]]
+origin Destination zonecounts
+[1,]    752        1898       2.70
+[2,]    752        1898       4.42
+
+[[47]]
+origin Destination zonecounts
+[1,]    845         420       1.88
+
+[[48]]
+origin Destination
+[1,]    569        1961
+
+[[49]]
+origin Destination zonecounts
+[1,]    632        1955       1.04
+
+[[50]]
+origin Destination zonecounts
+[1,]    514        1799       2.29
+[2,]    514        1799       6.63
+[3,]    514        1799      61.87
+
+[[51]]
+origin Destination zonecounts
+[1,]    756        1857       1.53
+
+[[52]]
+origin Destination zonecounts
+[1,]    831        1845       4.89
+[2,]    831        1845       1.28
+[3,]    831        1845       0.39
+
+[[53]]
+origin Destination
+[1,]   1958         511
+
+[[54]]
+origin Destination zonecounts
+[1,]   1903        1858       2.25
+
+[[55]]
+origin Destination zonecounts
+[1,]    425         409       2.68
+
+[[56]]
+origin Destination zonecounts
+[1,]   1959        1962       1.12
+
+[[57]]
+origin Destination
+[1,]    407        1800
+
+[[58]]
+origin Destination zonecounts
+[1,]    829        1920       1.03
+
+[[59]]
+origin Destination zonecounts
+[1,]    662         632       3.24
+[2,]    662         632       1.36
+
+[[60]]
+origin Destination
+[1,]   1898         705
+
+[[61]]
+origin Destination
+[1,]    550        1947
+
+[[62]]
+origin Destination zonecounts
+[1,]    712         421       0.83
+
+[[63]]
+origin Destination zonecounts
+[1,]    405        1916       1.83
+
+[[64]]
+origin Destination
+[1,]    798         512
+
+[[65]]
+origin Destination
+[1,]    761        1888
+
+[[66]]
+origin Destination zonecounts
+[1,]    470        1956       0.55
+[2,]    470        1956       2.87
+
+[[67]]
+origin Destination zonecounts
+[1,]    516        1843       1.21
+
+[[68]]
+origin Destination zonecounts
+[1,]   1902        1959       2.79
+[2,]   1902        1959       0.77
+
+[[69]]
+origin Destination
+[1,]    551         510
+
+[[70]]
+origin Destination zonecounts
+[1,]   1957        1801       0.41
+[2,]   1957        1801       7.82
+[3,]   1957        1801       2.15
+
+[[71]]
+origin Destination zonecounts
+[1,]    515        1889       0.42
+[2,]    515        1889       2.13
+
+[[72]]
+origin Destination zonecounts
+[1,]    833        1946       2.95
+[2,]    833        1946       2.50
+[3,]    833        1946       0.82
+[4,]    833        1946       2.28
+
+[[73]]
+origin Destination
+[1,]    860        1883
+
+[[74]]
+origin Destination zonecounts
+[1,]   1887         761       1.11
+[2,]   1887         761       3.05
+
+[[75]]
+origin Destination zonecounts
+[1,]    832         408       0.76
+
+[[76]]
+origin Destination
+[1,]    827        1802
+
+[[77]]
+origin Destination
+[1,]    826        1851
+
+[[78]]
+origin Destination zonecounts
+[1,]    400         706       4.11
+[2,]    400         706       9.12
+[3,]    400         706      12.02
+
+[[79]]
+origin Destination
+[1,]    420        1942
+
+[[80]]
+origin Destination
+[1,]   1962        1899
+
+[[81]]
+origin Destination
+[1,]    716        1966
+
+[[82]]
+origin Destination
+[1,]    547         476
+
+[[83]]
+origin Destination zonecounts
+[1,]   1888        1886       4.47
+
+[[84]]
+origin Destination zonecounts
+[1,]    660        1890       1.51
+}
+
+final_output =data.frame ( rbind(lapply (c(1:200),function(x) get_count(x))))
+{}
+which (ALLZONES$Purpose==1 & ALLZONES$Time_of_Day ==2 ,arr.ind =TRUE),]

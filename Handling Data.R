@@ -24,11 +24,6 @@ modifydata = function (){
     ALLZONES$Time_of_Day <<- as.numeric(factor(ALLZONES$Time_of_Day))
     ALLZONES$Purpose     <<- as.numeric(factor(ALLZONES$Purpose)) 
   }
-  removenonactivezones_ALLZONES = function (){
-    condition1 = ALLZONES$Origin_Zone %in% NEARZONES$ZONE.ID.TAZ
-    condition2 = ALLZONES$Destination_Zone %in% NEARZONES$ZONE.ID.TAZ 
-    ALLZONES <<- ALLZONES [condition1 * condition2 ,]
-  }
   
   ##---METRO Units
   remove_RedundantVariables_METRO = function() {
@@ -78,8 +73,46 @@ modifydata = function (){
   calculate_distanceinmiles_NEARZONES()
   
 }
-construsctdata = function (){
+construct_Predictors = function (){
+  #First 2 columns are origin and destination stations
+  Predictors <<- data.frame (METRO$Ent.Station,METRO$Ext.Station)
+  ##--CONSTRUCTING UNITS
+  add200predictors_closestzones_everystation = function (){
+    for (i in 1:200)
+      {
+      Predictors[1,paste ("Closesness Rank" ,i)] <<-  NA
+      }
+  }
+  #METRO - NEARZONES : Get the nearest 200 zones from NEARZONES for the origin station in METRO
+  get_closest200Zones_1st_record_OriginStation = function (){
+    closest200originstations = c()
+    closest200originstations = NEARZONES [ grepl( METRO [1, "Ent.Station"],NEARZONES$MetroStnFullPt.NAME), 2]
+    return (closest200originstations)
+  } 
+  get_closest200Zones_1stDestinationStation = function (){
+    closest200Destinationstations = c()
+    closest200Destinationstations = NEARZONES [ grepl( METRO [2, "Ext.Station"],NEARZONES$MetroStnFullPt.NAME), 2]
+    return (closest200Destinationstations)
+  }
   
+  get_count = function (){
+    countvector <- c()
+    origin = c(O_D[,1])
+    Destination = c(O_D[,2])
+    for (i in c(1:200)){
+      conditoin1 = ALLZONES$Count [ALLZONES$Origin_Zone == O_D$Origin[i] ]
+      conditoin2 = ALLZONES$Destination_Zone == O_D$Destination [i]                            
+      countvector [i] = ALLZONES$Count [ conditoin1 * conditoin2 ]
+      print (paste ("Count",ALLZONES$Count [ conditoin1 * conditoin2 ]))
+      print (i)
+    }
+    return (countvector)
+  }
+  ##--EXECUTION
+  add200predictors_closestzones_everystation()
+  O_D <<- data.frame (get_closest200Zones_1st_record_OriginStation(),get_closest200Zones_1stDestinationStation()) #1st_origin_Destination_dataframe
+  colnames (O_D) <<- c ("Origin","Destination")
+  get_count()
 }
 
 
@@ -88,15 +121,38 @@ construsctdata = function (){
 ####EXECUTION
 getdata()
 modifydata ()
-
+construct_Predictors ()
 
 
 ###TESTING
-getdata() : Works
-modifydata ()
-  -  get_residentsonly() : 
-        + Works? Yes
-        + Why? Original Dataset was bigger
-  -  remove_start_end_dates()
-        +works ? yes
-        +Evidence? AllZONES reduced to 7 instead of 9 variables
+> NEARZONES$ZONE.ID.TAZ [METRO$Ent.Station [1]]
+[1] 1750
+
+
+> head (NEARZONES [NEARZONES$MetroStnFullPt.NAME== "Van Dorn Street",])
+CLOSEST.ZONES_RANK ZONE.ID.TAZ MetroStnFullPt.NAME MetroStnFullPt.LINE
+1                  1        1750     Van Dorn Street                   1
+2                  2        1480     Van Dorn Street                   1
+3                  3        1748     Van Dorn Street                   1
+4                  4        1488     Van Dorn Street                   1
+5                  5        1751     Van Dorn Street                   1
+6                  6        1749     Van Dorn Street                   1
+DistanceMiles
+1     0.3743194
+2     0.5177304
+3     0.5956201
+4     0.7118358
+5     0.8018161
+6     0.9321130
+
+
+
+> head (NEARZONES [NEARZONES$MetroStnFullPt.NAME== "Van Dorn Street", 2])
+[1] 1750 1480 1748 1488 1751 1749
+
+
+
+> grepl( "Addison Road","Addison Road Seat Pleasant")
+[1] TRUE
+
+grepl( METRO [1, "Ent.Station"],NEARZONES$MetroStnFullPt.NAME)
